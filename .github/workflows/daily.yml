@@ -1,11 +1,8 @@
-YAML
 name: Daily Summary Bot
 
 on:
   schedule:
-    # 매일 한국 시간 오전 9시 정기 실행 (UTC 기준 00:00)
     - cron: '0 0 * * *'
-  # 필요할 때 수동으로 즉시 실행 버튼 활성화
   workflow_dispatch:
 
 jobs:
@@ -27,6 +24,8 @@ jobs:
       - name: 봇 실행
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
         run: |
           python main.py
