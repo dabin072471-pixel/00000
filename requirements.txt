@@ -1,0 +1,4 @@
+Plaintext
+google-genai
+requests
+feedparser
