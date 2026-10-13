@@ -1,0 +1,32 @@
+YAML
+name: Daily Summary Bot
+
+on:
+  schedule:
+    # 매일 한국 시간 오전 9시 정기 실행 (UTC 기준 00:00)
+    - cron: '0 0 * * *'
+  # 필요할 때 수동으로 즉시 실행 버튼 활성화
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 세팅
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: |
+          pip install -r requirements.txt
+
+      - name: 봇 실행
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python main.py
