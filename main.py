@@ -17,7 +17,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 # 1. 정보 수집 (구글 뉴스 RSS)
 def get_latest_news():
     # 검색 키워드는 필요에 따라 변경하실 수 있습니다
-    url = "https://news.google.com/rss/search?q=인공지능&hl=ko&gl=KR&ceid=KR:ko"
+    url = "https://news.google.com/rss/search?q=인터랙션+디자인&hl=ko&gl=KR&ceid=KR:ko"
     feed = feedparser.parse(url)
     
     collected = []
