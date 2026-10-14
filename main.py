@@ -1,5 +1,7 @@
 import os
 import smtplib
+import time
+import urllib.parse
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -14,19 +16,32 @@ RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")   # 알림을 받을 지메일 주�
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# 1. 정보 수집 (구글 뉴스 RSS)
+# 1. 정보 수집 (복수 키워드 순회 수집)
 def get_latest_news():
-    # 검색 키워드는 필요에 따라 변경하실 수 있습니다
-    url = "https://news.google.com/rss/search?q=인터랙션+디자인&hl=ko&gl=KR&ceid=KR:ko"
-    feed = feedparser.parse(url)
+    keywords = [
+        "인터랙션 디자인",
+        "촉각 인터페이스",
+        "하드웨어 UX",
+        "디지털 디톡스"
+    ]
     
     collected = []
-    for entry in feed.entries[:3]:
-        collected.append(f"- 제목: {entry.title}\n  링크: {entry.link}")
-    
-    return "\n".join(collected), len(feed.entries[:3])
+    seen_links = set()  # 중복 기사 방지
 
-# 2. 작업 완료 및 요약 결과 메일 발송 함수 (summary_text 매개변수 추가)
+    for kw in keywords:
+        encoded_kw = urllib.parse.quote(kw)
+        url = f"https://news.google.com/rss/search?q={encoded_kw}&hl=ko&gl=KR&ceid=KR:ko"
+        feed = feedparser.parse(url)
+        
+        # 키워드당 최신 2건씩 추출
+        for entry in feed.entries[:2]:
+            if entry.link not in seen_links:
+                seen_links.add(entry.link)
+                collected.append(f"[{kw}] 제목: {entry.title}\n링크: {entry.link}")
+    
+    return "\n\n".join(collected), len(collected)
+
+# 2. 요약 내용 포함 메일 발송 함수
 def send_completion_email(item_count, summary_text):
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     
@@ -75,17 +90,27 @@ def main():
     {news_text}
     """
     
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt
-    )
+    # 503 일시적 서버 과부하 대응: 최대 3회 자동 재시도
+    response = None
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt
+            )
+            break
+        except Exception as e:
+            if attempt < 2:
+                print(f"서버 일시 지연(503) 감지. 5초 후 다시 시도합니다... ({attempt + 1}/3)")
+                time.sleep(5)
+            else:
+                raise e
     
     # 요약 결과 콘솔 출력
     print("=== [요약 완료 내용] ===")
     print(response.text)
     
     print("[3/3] 요약 내용 포함 메일 전송 중...")
-    # 요약 텍스트(response.text)를 메일 발송 함수로 전달
     send_completion_email(item_count, response.text)
 
 if __name__ == "__main__":
